@@ -110,46 +110,33 @@ export const updateProfile = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { profilPic } = req.body;
-    if (!req.user) {
-      res.status(400).json({ message: 'User not authenticated' });
-      return;
-    }
-    const userId = req.user._id;
+    const { profilePic } = req.body;
+    const userId = req.user?._id;
 
-    if (!profilPic) {
-      res.status(400).json({ message: 'Profile picture is required' });
+    if (!profilePic) {
+      res.status(400).json({ message: 'Profile pic is required' });
       return;
     }
 
-    const uploadResponse = await cloudinary.uploader.upload(profilPic);
-
+    const uploadResponse = await cloudinary.uploader.upload(profilePic);
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { profilPic: uploadResponse.secure_url },
+      { profilePic: uploadResponse.secure_url },
       { new: true },
     );
 
-    res.status(200).json({ updatedUser });
+    res.status(200).json(updatedUser);
   } catch (error) {
-    if (error instanceof Error) {
-      console.error('Error in update profile:', error.message);
-    } else {
-      console.error('Unknown error in update profile');
-    }
+    console.log('error in update profile:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
 
-export const checkAuth = (req: Request, res: Response) => {
+export const checkAuth = (req: Request, res: Response): void => {
   try {
     res.status(200).json(req.user);
   } catch (error) {
-    if (error instanceof Error) {
-      console.error('Error in checkAuth controller', error.message);
-    } else {
-      console.error('Unknown error in checkAuth controller');
-    }
-    res.status(500).json({ message: 'Internal server error' });
+    console.log('Error in checkAuth controller', error);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 };
