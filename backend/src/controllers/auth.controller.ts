@@ -41,7 +41,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
         _id: newUser._id,
         email: newUser.email,
         fullName: newUser.fullName,
-        profilPic: newUser.profilPic,
+        profilePic: newUser.profilePic,
       });
     } else {
       res.status(400).json({ message: 'Invalid user data' });
@@ -79,7 +79,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       _id: user._id,
       email: user.email,
       fullName: user.fullName,
-      profilPic: user.profilPic,
+      profilePic: user.profilePic,
     });
   } catch (error) {
     if (error instanceof Error) {
@@ -123,9 +123,22 @@ export const updateProfile = async (
       userId,
       { profilePic: uploadResponse.secure_url },
       { new: true },
-    );
+    ).select('-password');
 
-    res.status(200).json(updatedUser);
+    if (!updatedUser) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    // Return the complete user object with consistent property names
+    res.status(200).json({
+      _id: updatedUser._id,
+      email: updatedUser.email,
+      fullName: updatedUser.fullName,
+      profilePic: updatedUser.profilePic,
+      createdAt: updatedUser.createdAt,
+      updatedAt: updatedUser.updatedAt,
+    });
   } catch (error) {
     console.log('error in update profile:', error);
     res.status(500).json({ message: 'Internal server error' });
