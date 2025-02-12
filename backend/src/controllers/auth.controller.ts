@@ -118,7 +118,10 @@ export const updateProfile = async (
       return;
     }
 
+    console.log('Attempting to upload image to Cloudinary...');
     const uploadResponse = await cloudinary.uploader.upload(profilePic);
+    console.log('Cloudinary upload successful');
+
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { profilePic: uploadResponse.secure_url },
@@ -130,7 +133,6 @@ export const updateProfile = async (
       return;
     }
 
-    // Return the complete user object with consistent property names
     res.status(200).json({
       _id: updatedUser._id,
       email: updatedUser.email,
@@ -140,14 +142,28 @@ export const updateProfile = async (
       updatedAt: updatedUser.updatedAt,
     });
   } catch (error) {
-    console.log('error in update profile:', error);
+    console.error('Detailed error in update profile:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
 
-export const checkAuth = (req: Request, res: Response): void => {
+export const checkAuth = async (req: Request, res: Response): Promise<void> => {
   try {
-    res.status(200).json(req.user);
+    const user = await User.findById(req.user?._id).select('-password');
+
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    res.status(200).json({
+      _id: user._id,
+      email: user.email,
+      fullName: user.fullName,
+      profilePic: user.profilePic,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    });
   } catch (error) {
     console.log('Error in checkAuth controller', error);
     res.status(500).json({ message: 'Internal Server Error' });

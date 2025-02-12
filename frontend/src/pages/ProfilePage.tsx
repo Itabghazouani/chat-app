@@ -5,10 +5,12 @@ import { Camera, Mail, User } from 'lucide-react';
 const ProfilePage = () => {
   const { authUser, isUpdatingProfile, updateProfile } = useAuthStore();
   const [selectedImg, setSelectedImg] = useState<string | null>(null);
+
   const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     const file = files[0];
+    if (!file) return;
 
     const reader = new FileReader();
 

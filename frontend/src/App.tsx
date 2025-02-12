@@ -26,7 +26,7 @@ const App = () => {
     );
   }
   return (
-    <div className="">
+    <div className="" data-theme="retro">
       <Navbar />
       <Routes>
         <Route
