@@ -1,9 +1,9 @@
 import bcrypt from 'bcryptjs';
 import { config } from 'dotenv';
 
-import User from '../models/user.model.ts';
-import { IProcessedUserSeed, IUserSeed } from '../types/userSeed.types.ts';
-import { connectDB } from '../lib/db.ts';
+import User from '../models/user.model';
+import { IProcessedUserSeed, IUserSeed } from '../types/userSeed.types';
+import { connectDB } from '../lib/db';
 
 config();
 

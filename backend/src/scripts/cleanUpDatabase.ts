@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import User from '../models/user.model.ts';
-import { connectDB } from '../lib/db.ts';
+import User from '../models/user.model';
+import { connectDB } from '../lib/db';
 import dotenv from 'dotenv';
 
 dotenv.config();
