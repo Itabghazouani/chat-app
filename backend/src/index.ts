@@ -2,11 +2,11 @@ import express, { Application } from 'express';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import { connectDB } from './lib/db.ts';
-import authRoutes from './routes/auth.route.ts';
-import messageRoutes from './routes/message.route.ts';
-import { checkCloudinaryConnection } from './lib/cloudinaryHealth.ts';
-import { app, server } from './lib/socket.ts';
+import { connectDB } from './lib/db';
+import authRoutes from './routes/auth.route';
+import messageRoutes from './routes/message.route';
+import { checkCloudinaryConnection } from './lib/cloudinaryHealth';
+import { app, server } from './lib/socket';
 import path from 'path';
 
 dotenv.config();
