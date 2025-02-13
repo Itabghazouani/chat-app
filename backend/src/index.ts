@@ -6,9 +6,9 @@ import { connectDB } from './lib/db.ts';
 import authRoutes from './routes/auth.route.ts';
 import messageRoutes from './routes/message.route.ts';
 import { checkCloudinaryConnection } from './lib/cloudinaryHealth.ts';
+import { app, server } from './lib/socket.ts';
 
 dotenv.config();
-const app: Application = express();
 
 const PORT = process.env.PORT;
 
@@ -26,17 +26,15 @@ app.use('/api/messages', messageRoutes);
 
 const startServer = async () => {
   try {
-    // Check Cloudinary connection before starting the server
     const cloudinaryStatus = await checkCloudinaryConnection();
     if (!cloudinaryStatus.isConnected) {
       console.error('Failed to connect to Cloudinary. Server startup aborted.');
       process.exit(1);
     }
 
-    // Connect to MongoDB
     await connectDB();
 
-    const server = app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       console.log('Cloudinary connection verified');
     });

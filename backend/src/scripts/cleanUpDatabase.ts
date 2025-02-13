@@ -10,7 +10,6 @@ const cleanupDatabase = async () => {
     await connectDB();
     console.log('Connected to MongoDB');
 
-    // Use updateMany with a more forceful approach
     const cleanupResult = await User.collection.updateMany(
       {},
       { $unset: { profilPic: '' } },

@@ -5,7 +5,7 @@ import { axiosInstance } from '../lib/axios';
 import { TMessage } from '../types/messages.types';
 import { TUser } from '../types/user.types';
 import { TMessageData } from '../types/messageData';
-
+import { useAuthStore } from './useAuthStore';
 interface IChatStore {
   messages: TMessage[];
   users: TUser[];
@@ -15,8 +15,9 @@ interface IChatStore {
   getUsers: () => Promise<void>;
   getMessages: (userId: string) => Promise<void>;
   sendMessage: (messageData: TMessageData) => Promise<void>;
+  subscribeToMessages: () => void;
+  unsubscribeFromMessages: () => void;
   setSelectedUser: (selectedUser: TUser | null) => void;
-  restoreSelectedUser: () => Promise<void>;
 }
 
 export const useChatStore = create<IChatStore>((set, get) => ({
@@ -31,17 +32,6 @@ export const useChatStore = create<IChatStore>((set, get) => ({
     try {
       const res = await axiosInstance.get('/messages/users');
       set({ users: res.data });
-
-      // After getting users, try to restore the selected user
-      const selectedUserId = localStorage.getItem('selectedUserId');
-      if (selectedUserId) {
-        const selectedUser = res.data.find(
-          (user: TUser) => user._id === selectedUserId,
-        );
-        if (selectedUser) {
-          set({ selectedUser });
-        }
-      }
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         toast.error(error.response.data.message || 'An error occurred');
@@ -89,29 +79,26 @@ export const useChatStore = create<IChatStore>((set, get) => ({
       }
     }
   },
-  setSelectedUser: (selectedUser: TUser | null) => {
-    set({ selectedUser });
-    // Save to localStorage when a user is selected
-    if (selectedUser) {
-      localStorage.setItem('selectedUserId', selectedUser._id);
-    } else {
-      localStorage.removeItem('selectedUserId');
-    }
-  },
-  restoreSelectedUser: async () => {
-    const selectedUserId = localStorage.getItem('selectedUserId');
-    if (!selectedUserId) return;
 
-    const { users } = get();
-    if (users.length === 0) {
-      // If users haven't been loaded yet, load them
-      await get().getUsers();
-    } else {
-      // If users are already loaded, find the selected user
-      const selectedUser = users.find((user) => user._id === selectedUserId);
-      if (selectedUser) {
-        set({ selectedUser });
-      }
-    }
+  subscribeToMessages: () => {
+    const { selectedUser } = get();
+    if (!selectedUser) return;
+    const socket = useAuthStore.getState().socket;
+
+    socket?.on('newMessage', (newMessage: TMessage) => {
+      const isMessageSentFromSelectedUser =
+        newMessage.senderId === selectedUser._id;
+      if (!isMessageSentFromSelectedUser) return;
+      set({
+        messages: [...get().messages, newMessage],
+      });
+    });
   },
+
+  unsubscribeFromMessages: () => {
+    const socket = useAuthStore.getState().socket;
+    socket?.off('newMessage');
+  },
+
+  setSelectedUser: (selectedUser: TUser | null) => set({ selectedUser }),
 }));

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import User from '../models/user.model.ts';
 import Message from '../models/message-model.ts';
 import cloudinary from '../lib/cloudinary.ts';
+import { getReceiverSocketId, io } from '../lib/socket.ts';
 
 export const getUsersForSidebar = async (
   req: Request,
@@ -72,6 +73,12 @@ export const sendMessages = async (
     });
 
     await newMessage.save();
+
+    const receiverSocketId = getReceiverSocketId(receiverId);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit('newMessage', newMessage);
+    }
+
     res.status(201).json(newMessage);
   } catch (error) {
     if (error instanceof Error) {

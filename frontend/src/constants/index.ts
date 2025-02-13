@@ -43,3 +43,5 @@ export const PREVIEW_MESSAGES: TPreviewMessage[] = [
     isSent: true,
   },
 ];
+
+export const BASE_URL = 'http://localhost:5001';

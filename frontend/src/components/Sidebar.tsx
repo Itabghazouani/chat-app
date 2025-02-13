@@ -1,17 +1,40 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useChatStore } from '../store/useChatStore';
 import SidebarSkeleton from './skeletons/SidebarSkeleton';
 import { Users } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
+import { TUser } from '../types/user.types';
 
 const Sidebar = () => {
   const { getUsers, selectedUser, setSelectedUser, users, isUsersLoading } =
     useChatStore();
   const { onlineUsers } = useAuthStore();
+  const [showOnlineOnly, setShowOnlineOnly] = useState(false);
 
   useEffect(() => {
     getUsers();
   }, [getUsers]);
+
+  const sortUsersByOnlineStatus = (userList: TUser[]) => {
+    return [...userList].sort((a, b) => {
+      const aIsOnline = onlineUsers.includes(a._id);
+      const bIsOnline = onlineUsers.includes(b._id);
+
+      // If a is online and b is not, a should come first (-1)
+      // If b is online and a is not, b should come first (1)
+      // If both have the same online status, keep original order (0)
+      if (aIsOnline && !bIsOnline) return -1;
+      if (!aIsOnline && bIsOnline) return 1;
+      return 0;
+    });
+  };
+
+  // Then apply both filtering and sorting
+  const filteredAndSortedUsers = sortUsersByOnlineStatus(
+    showOnlineOnly
+      ? users.filter((user) => onlineUsers.includes(user._id))
+      : users,
+  );
 
   if (isUsersLoading) {
     return <SidebarSkeleton />;
@@ -23,10 +46,24 @@ const Sidebar = () => {
           <Users className="size-6" />
           <span className="font-medium hidden lg:block">Contacts</span>
         </div>
+        <div className="mt-3 hidden lg:flex items-center gap-2">
+          <label className="cursor-pointer flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={showOnlineOnly}
+              onChange={(e) => setShowOnlineOnly(e.target.checked)}
+              className="checkbox checkbox-sm"
+            />
+            <span className="text-sm">Show online only</span>
+          </label>
+          <span className="text-xs text-zinc-500">
+            ({onlineUsers.length - 1} online)
+          </span>
+        </div>
       </div>
 
       <div className="overflow-y-auto w-full py-3">
-        {users.map((user) => (
+        {filteredAndSortedUsers.map((user) => (
           <button
             key={user._id}
             onClick={() => setSelectedUser(user)}
@@ -62,6 +99,9 @@ const Sidebar = () => {
             </div>
           </button>
         ))}
+        {filteredAndSortedUsers.length === 0 && (
+          <div className="text-center text-zinc-500 py-4">No online users</div>
+        )}
       </div>
     </aside>
   );

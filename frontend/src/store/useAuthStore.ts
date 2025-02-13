@@ -1,11 +1,16 @@
-import { create } from 'zustand';
-import { axiosInstance } from '../lib/axios.ts';
-import { TUser } from '../types/user.types.ts';
-import toast from 'react-hot-toast';
-import { TSignupData } from '../types/signUpData.types.ts';
 import axios from 'axios';
+import toast from 'react-hot-toast';
+
+import { create } from 'zustand';
+import { io, Socket } from 'socket.io-client';
+
+import { axiosInstance } from '../lib/axios.ts';
+
+import { TUser } from '../types/user.types.ts';
+import { TSignupData } from '../types/signUpData.types.ts';
 import { TLoginData } from '../types/loginData.types.ts';
 import { TProfileUpdateData } from '../types/profileUpdateData.types.ts';
+import { BASE_URL } from '../constants/index.ts';
 
 interface IAuthStore {
   authUser: TUser | null;
@@ -13,19 +18,23 @@ interface IAuthStore {
   isLoggingIn: boolean;
   isUpdatingProfile: boolean;
   isCheckingAuth: boolean;
+  onlineUsers: TUser['_id'][];
+  socket: Socket | null;
+
   checkAuth: () => Promise<void>;
   signup: (data: TSignupData) => Promise<void>;
   logout: () => Promise<void>;
   login: (data: TLoginData) => Promise<void>;
   updateProfile: (data: TProfileUpdateData) => Promise<void>;
-  onlineUsers: TUser['_id'][];
+  connectSocket: () => void;
+  disconnectSocket: () => void;
 }
 
 interface ApiError {
   message: string;
 }
 
-export const useAuthStore = create<IAuthStore>((set) => ({
+export const useAuthStore = create<IAuthStore>((set, get) => ({
   authUser: null,
   isSigningUp: false,
   isLoggingIn: false,
@@ -33,11 +42,13 @@ export const useAuthStore = create<IAuthStore>((set) => ({
   isCheckingAuth: true,
   isLoggingOut: false,
   onlineUsers: [],
+  socket: null,
   checkAuth: async () => {
     try {
       const res = await axiosInstance.get<TUser>('auth/check');
       console.log('Check auth response:', res.data);
       set({ authUser: res.data });
+      get().connectSocket();
     } catch (error) {
       console.error('Error in checkAuth:', error);
       set({ authUser: null });
@@ -50,8 +61,9 @@ export const useAuthStore = create<IAuthStore>((set) => ({
     set({ isSigningUp: true });
     try {
       const res = await axiosInstance.post<TUser>('auth/signup', data);
-      toast.success('Account created successfully');
       set({ authUser: res.data });
+      toast.success('Account created successfully');
+      get().connectSocket();
     } catch (error) {
       console.error('Error in signup:', error);
 
@@ -74,7 +86,7 @@ export const useAuthStore = create<IAuthStore>((set) => ({
       set({ authUser: res.data });
       toast.success('Logged in successfully');
 
-      // get().connectSocket();
+      get().connectSocket();
     } catch (error) {
       console.error('Error in signup:', error);
 
@@ -95,6 +107,7 @@ export const useAuthStore = create<IAuthStore>((set) => ({
       await axiosInstance.post('auth/logout');
       set({ authUser: null });
       toast.success('Logged out successfully');
+      get().disconnectSocket();
     } catch (error) {
       console.error('Error in logout:', error);
       if (axios.isAxiosError(error) && error.response) {
@@ -122,5 +135,24 @@ export const useAuthStore = create<IAuthStore>((set) => ({
     } finally {
       set({ isUpdatingProfile: false });
     }
+  },
+
+  connectSocket: () => {
+    const { authUser } = get();
+    if (!authUser || get().socket?.connected) return;
+    const socket = io(BASE_URL, {
+      query: {
+        userId: authUser._id,
+      },
+    });
+    socket.connect();
+    set({ socket });
+    socket.on('getOnlineUsers', (userIds: TUser['_id'][]) => {
+      set({ onlineUsers: userIds });
+    });
+  },
+
+  disconnectSocket: () => {
+    if (get().socket?.connected) get().socket?.disconnect();
   },
 }));
