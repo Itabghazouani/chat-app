@@ -28,10 +28,10 @@ app.use('/api/messages', messageRoutes);
 
 if (process.env.NODE_ENV === 'production') {
   const rootDir = path.resolve();
-  app.use(express.static(path.join(rootDir, '/frontend/dist')));
+  app.use(express.static(path.join(rootDir, '../frontend/dist')));
 
   app.get('*', (req, res) =>
-    res.sendFile(path.join(rootDir, '/frontend/dist/index.html')),
+    res.sendFile(path.join(rootDir, '../frontend/dist/index.html')),
   );
 }
 
