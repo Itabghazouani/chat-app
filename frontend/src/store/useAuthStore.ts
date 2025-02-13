@@ -18,6 +18,7 @@ interface IAuthStore {
   logout: () => Promise<void>;
   login: (data: TLoginData) => Promise<void>;
   updateProfile: (data: TProfileUpdateData) => Promise<void>;
+  onlineUsers: TUser['_id'][];
 }
 
 interface ApiError {
@@ -31,7 +32,7 @@ export const useAuthStore = create<IAuthStore>((set) => ({
   isUpdatingProfile: false,
   isCheckingAuth: true,
   isLoggingOut: false,
-
+  onlineUsers: [],
   checkAuth: async () => {
     try {
       const res = await axiosInstance.get<TUser>('auth/check');
