@@ -24,10 +24,21 @@ io.on('connection', (socket: Socket) => {
   if (userId && typeof userId === 'string') {
     userSocketMap.set(userId, socket.id);
 
+    io.emit('userListUpdate');
     io.emit('getOnlineUsers', Array.from(userSocketMap.keys()));
 
     console.log('Current online users:', Array.from(userSocketMap.keys()));
   }
+
+  socket.on('newMessage', ({ recipientId, message }) => {
+    console.log('Received message on server:', { recipientId, message });
+    const recipientSocketId = userSocketMap.get(recipientId);
+    if (recipientSocketId) {
+      console.log('Forwarding message to recipient:', recipientId);
+      io.to(recipientSocketId).emit('messageReceived', message);
+      io.to(recipientSocketId).emit('updateUsersList');
+    }
+  });
 
   socket.on('disconnect', () => {
     console.log('A user disconnected', socket.id);
@@ -39,6 +50,7 @@ io.on('connection', (socket: Socket) => {
       }
     }
 
+    io.emit('userListUpdate');
     io.emit('getOnlineUsers', Array.from(userSocketMap.keys()));
 
     console.log('Users after disconnect:', Array.from(userSocketMap.keys()));
