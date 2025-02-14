@@ -6,8 +6,14 @@ import { useAuthStore } from '../store/useAuthStore';
 import { TUser } from '../types/user.types';
 
 const Sidebar = () => {
-  const { getUsers, selectedUser, setSelectedUser, users, isUsersLoading } =
-    useChatStore();
+  const {
+    getUsers,
+    selectedUser,
+    setSelectedUser,
+    users,
+    isUsersLoading,
+    unreadMessages,
+  } = useChatStore();
   const { onlineUsers } = useAuthStore();
   const [showOnlineOnly, setShowOnlineOnly] = useState(false);
 
@@ -20,16 +26,12 @@ const Sidebar = () => {
       const aIsOnline = onlineUsers.includes(a._id);
       const bIsOnline = onlineUsers.includes(b._id);
 
-      // If a is online and b is not, a should come first (-1)
-      // If b is online and a is not, b should come first (1)
-      // If both have the same online status, keep original order (0)
       if (aIsOnline && !bIsOnline) return -1;
       if (!aIsOnline && bIsOnline) return 1;
       return 0;
     });
   };
 
-  // Then apply both filtering and sorting
   const filteredAndSortedUsers = sortUsersByOnlineStatus(
     showOnlineOnly
       ? users.filter((user) => onlineUsers.includes(user._id))
@@ -88,6 +90,13 @@ const Sidebar = () => {
                   className="absolute bottom-0 right-0 size-3 bg-green-500 
                   rounded-full ring-2 ring-zinc-900"
                 />
+              )}
+              {unreadMessages[user._id] > 0 && (
+                <div className="absolute -top-1 -right-1 min-w-5 h-5 flex items-center justify-center bg-red-500 text-white text-xs font-medium rounded-full px-1">
+                  {unreadMessages[user._id] > 9
+                    ? '9+'
+                    : unreadMessages[user._id]}
+                </div>
               )}
             </div>
 

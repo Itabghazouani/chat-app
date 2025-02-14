@@ -11,6 +11,8 @@ import { TSignupData } from '../types/signUpData.types.ts';
 import { TLoginData } from '../types/loginData.types.ts';
 import { TProfileUpdateData } from '../types/profileUpdateData.types.ts';
 import { BASE_URL } from '../constants/index.ts';
+import { useChatStore } from './useChatStore.ts';
+import { TMessage } from '../types/messages.types.ts';
 
 interface IAuthStore {
   authUser: TUser | null;
@@ -104,12 +106,13 @@ export const useAuthStore = create<IAuthStore>((set, get) => ({
 
   logout: async () => {
     try {
+      get().disconnectSocket();
       await axiosInstance.post('auth/logout');
       set({ authUser: null });
       toast.success('Logged out successfully');
-      get().disconnectSocket();
     } catch (error) {
       console.error('Error in logout:', error);
+      set({ authUser: null });
       if (axios.isAxiosError(error) && error.response) {
         const errorMessage =
           (error.response.data as ApiError).message || 'An error occurred';
@@ -147,8 +150,30 @@ export const useAuthStore = create<IAuthStore>((set, get) => ({
     });
     socket.connect();
     set({ socket });
+
     socket.on('getOnlineUsers', (userIds: TUser['_id'][]) => {
       set({ onlineUsers: userIds });
+    });
+
+    socket.on('userListUpdate', () => {
+      const chatStore = useChatStore.getState();
+      chatStore.getUsers();
+    });
+
+    socket.on('messageReceived', (message: TMessage) => {
+      console.log('Message received in auth store:', message);
+      const chatStore = useChatStore.getState();
+      const selectedUser = chatStore.selectedUser;
+
+      if (!selectedUser || message.senderId !== selectedUser._id) {
+        console.log('Incrementing unread messages for:', message.senderId);
+        chatStore.incrementUnreadMessages(message.senderId);
+      }
+    });
+
+    socket.on('updateUsersList', () => {
+      const chatStore = useChatStore.getState();
+      chatStore.getUsers();
     });
   },
 

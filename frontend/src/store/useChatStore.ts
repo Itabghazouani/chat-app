@@ -6,12 +6,17 @@ import { TMessage } from '../types/messages.types';
 import { TUser } from '../types/user.types';
 import { TMessageData } from '../types/messageData';
 import { useAuthStore } from './useAuthStore';
+import { TUnreadMessages } from '../types/unreadMessages.types';
+import { loadUnreadMessages } from '../lib/utils';
 interface IChatStore {
   messages: TMessage[];
   users: TUser[];
   selectedUser: TUser | null;
   isUsersLoading: boolean;
   isMessagesLoading: boolean;
+  unreadMessages: TUnreadMessages;
+  markMessagesAsRead: (userId: string) => void;
+  incrementUnreadMessages: (senderId: string) => void;
   getUsers: () => Promise<void>;
   getMessages: (userId: string) => Promise<void>;
   sendMessage: (messageData: TMessageData) => Promise<void>;
@@ -26,6 +31,7 @@ export const useChatStore = create<IChatStore>((set, get) => ({
   selectedUser: null,
   isUsersLoading: false,
   isMessagesLoading: false,
+  unreadMessages: loadUnreadMessages(),
 
   getUsers: async () => {
     set({ isUsersLoading: true });
@@ -70,7 +76,19 @@ export const useChatStore = create<IChatStore>((set, get) => ({
         `/messages/send/${selectedUser._id}`,
         messageData,
       );
+      const newMessage = res.data;
       set({ messages: [...messages, res.data] });
+      const socket = useAuthStore.getState().socket;
+      if (socket) {
+        socket.emit('newMessage', {
+          recipientId: selectedUser._id,
+          message: newMessage,
+        });
+        console.log('Message emitted via socket:', {
+          recipientId: selectedUser._id,
+          message: newMessage,
+        });
+      }
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         toast.error(error.response.data.message || 'Failed to send message');
@@ -100,5 +118,33 @@ export const useChatStore = create<IChatStore>((set, get) => ({
     socket?.off('newMessage');
   },
 
-  setSelectedUser: (selectedUser: TUser | null) => set({ selectedUser }),
+  markMessagesAsRead: (userId: string) => {
+    set((state) => {
+      const newUnreadMessages = {
+        ...state.unreadMessages,
+        [userId]: 0,
+      };
+      localStorage.setItem('unreadMessages', JSON.stringify(newUnreadMessages));
+      return { unreadMessages: newUnreadMessages };
+    });
+  },
+
+  incrementUnreadMessages: (senderId: string) => {
+    if (senderId === get().selectedUser?._id) return;
+    set((state) => {
+      const newUnreadMessages = {
+        ...state.unreadMessages,
+        [senderId]: (state.unreadMessages[senderId] || 0) + 1,
+      };
+
+      localStorage.setItem('unreadMessages', JSON.stringify(newUnreadMessages));
+      return { unreadMessages: newUnreadMessages };
+    });
+  },
+  setSelectedUser: (selectedUser: TUser | null) => {
+    set({ selectedUser });
+    if (selectedUser) {
+      get().markMessagesAsRead(selectedUser._id);
+    }
+  },
 }));

@@ -5,3 +5,8 @@ export function formatMessageTime(date: Date | string): string {
     hour12: false,
   });
 }
+
+export const loadUnreadMessages = () => {
+  const saved = localStorage.getItem('unreadMessages');
+  return saved ? JSON.parse(saved) : {};
+};
